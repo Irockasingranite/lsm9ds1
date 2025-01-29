@@ -1,6 +1,8 @@
 use crate::registers::Register;
 use crate::Error;
 
+pub mod i2c;
+
 /// An interface to the sensor.
 pub trait Interface {
     /// Write a value to a register.
@@ -10,4 +12,4 @@ pub trait Interface {
     fn read(&mut self, reg: Register) -> Result<u8, Error>;
 }
 
-pub mod i2c;
+pub use i2c::I2cInterface;

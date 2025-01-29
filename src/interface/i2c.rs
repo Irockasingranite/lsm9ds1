@@ -4,7 +4,7 @@ use embedded_hal::i2c::Error as _;
 use embedded_hal::i2c::I2c;
 
 use crate::interface::Interface;
-use crate::registers::{Component, Register};
+use crate::registers::{ComponentAddress, Register};
 use crate::Error;
 
 /// I2C address of the Accelerometer/Gyroscope component.
@@ -85,24 +85,25 @@ impl<I2C: I2c> I2cInterface<I2C> {
 
 impl<I2C: I2c> Interface for I2cInterface<I2C> {
     fn read(&mut self, reg: Register) -> Result<u8, Error> {
-        let (device, reg_addr) = reg.addr();
-        let device_addr = match device {
-            Component::Ag => self.config.addr_ag.addr(),
-            Component::M => self.config.addr_m.addr(),
+        let addr = reg.addr();
+        let (device_addr, reg_addr) = match addr {
+            ComponentAddress::Ag(reg) => (self.config.addr_ag.addr(), reg),
+            ComponentAddress::M(reg) => (self.config.addr_m.addr(), reg),
         };
         let mut buf: u8 = 0;
 
         self.bus
             .write_read(device_addr, &[reg_addr], slice::from_mut(&mut buf))
-            .map(|()| buf)
-            .map_err(|e| Error::I2cError(e.kind()))
+            .map_err(|e| Error::I2cError(e.kind()))?;
+
+        Ok(buf)
     }
 
     fn write(&mut self, reg: Register, value: u8) -> Result<(), Error> {
-        let (device, reg_addr) = reg.addr();
-        let device_addr = match device {
-            Component::Ag => self.config.addr_ag.addr(),
-            Component::M => self.config.addr_m.addr(),
+        let addr = reg.addr();
+        let (device_addr, reg_addr) = match addr {
+            ComponentAddress::Ag(reg) => (self.config.addr_ag.addr(), reg),
+            ComponentAddress::M(reg) => (self.config.addr_m.addr(), reg),
         };
 
         self.bus
