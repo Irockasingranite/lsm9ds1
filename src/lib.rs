@@ -5,11 +5,13 @@ pub mod config;
 /// Sensor interfaces.
 pub mod interface;
 
+mod builder;
 mod registers;
 
 #[cfg(test)]
 mod tests;
 
+use builder::Lsm9ds1Builder;
 use config::DeviceConfig;
 use embedded_hal::i2c;
 use interface::Interface;
@@ -29,6 +31,10 @@ pub struct Lsm9ds1<I: Interface> {
 }
 
 impl<I: Interface> Lsm9ds1<I> {
+    pub fn builder() -> Lsm9ds1Builder {
+        Lsm9ds1Builder::new()
+    }
+
     /// Initialize the device by applying all settings.
     pub fn init(&mut self) -> Result<(), Error> {
         let register_values = self.config.all_registers();
