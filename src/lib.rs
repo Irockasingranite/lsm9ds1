@@ -1,12 +1,16 @@
 #![cfg_attr(not(test), no_std)] // This allows us to use std in tests
 
+/// Sensor configuration.
+pub mod config;
 /// Sensor interfaces.
 pub mod interface;
+
 mod registers;
 
 #[cfg(test)]
 mod tests;
 
+use config::DeviceConfig;
 use embedded_hal::i2c;
 use interface::Interface;
 use registers::Register;
@@ -21,12 +25,18 @@ pub enum Error {
 /// An LSM9DS1 sensor.
 pub struct Lsm9ds1<I: Interface> {
     interface: I,
+    config: DeviceConfig,
 }
 
 impl<I: Interface> Lsm9ds1<I> {
-    /// Create a new driver instance.
-    pub fn new(interface: I) -> Self {
-        Self { interface }
+    /// Initialize the device by applying all settings.
+    pub fn init(&mut self) -> Result<(), Error> {
+        let register_values = self.config.all_registers();
+        for (reg, value) in register_values.into_iter() {
+            self.interface.write(reg, value)?;
+        }
+
+        Ok(())
     }
 
     /// Read out chip identification for the accelerometer and gyroscope.
@@ -39,6 +49,7 @@ impl<I: Interface> Lsm9ds1<I> {
         self.interface.read(Register::WHO_AM_I_M)
     }
 
+    /// Apply software reset.
     pub fn reset(&mut self) -> Result<(), Error> {
         let mut ctrl_reg = self.interface.read(Register::CTRL_REG8)?;
         ctrl_reg |= 0b1;
