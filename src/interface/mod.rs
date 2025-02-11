@@ -10,6 +10,9 @@ pub trait Interface {
 
     /// Read a value from a register.
     fn read(&mut self, reg: Register) -> Result<u8, Error>;
+
+    /// Read multiple values from registers in sequence.
+    fn read_multiple(&mut self, start_reg: Register, buffer: &mut [u8]) -> Result<(), Error>;
 }
 
 pub use i2c::I2cInterface;

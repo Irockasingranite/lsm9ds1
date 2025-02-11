@@ -17,11 +17,11 @@ impl Lsm9ds1Builder {
         Self::default()
     }
 
-    pub fn from_config(config: DeviceConfig) -> Self {
+    pub fn with_config(&mut self, config: DeviceConfig) -> Self {
         Self { config }
     }
 
-    pub fn init<I: Interface>(self, interface: I) -> Result<Lsm9ds1<I>, Error> {
+    pub fn init_on<I: Interface>(self, interface: I) -> Result<Lsm9ds1<I>, Error> {
         let mut device = Lsm9ds1::<I> {
             interface,
             config: self.config,

@@ -99,6 +99,18 @@ impl<I2C: I2c> Interface for I2cInterface<I2C> {
         Ok(buf)
     }
 
+    fn read_multiple(&mut self, start_reg: Register, buffer: &mut[u8]) -> Result<(), Error> {
+        let start_addr = start_reg.addr();
+        let (device_addr, start_reg_addr) = match start_addr {
+            ComponentAddress::Ag(reg) => (self.config.addr_ag.addr(), reg),
+            ComponentAddress::M(reg) => (self.config.addr_m.addr(), reg),
+        };
+
+        self.bus
+            .write_read(device_addr, &[start_reg_addr], buffer)
+            .map_err(|e| Error::I2cError(e.kind()))
+    }
+
     fn write(&mut self, reg: Register, value: u8) -> Result<(), Error> {
         let addr = reg.addr();
         let (device_addr, reg_addr) = match addr {

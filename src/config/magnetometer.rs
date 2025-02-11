@@ -29,6 +29,17 @@ pub enum FullScale {
     PlusMinus16Gauss,
 }
 
+impl From<FullScale> for f32 {
+    fn from(full_scale: FullScale) -> f32 {
+        match full_scale {
+            FullScale::PlusMinus4Gauss => 4.0,
+            FullScale::PlusMinus8Gauss => 8.0,
+            FullScale::PlusMinus12Gauss => 12.0,
+            FullScale::PlusMinus16Gauss => 16.0,
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 pub enum OperatingMode {
     ContinuousConversion,
@@ -38,8 +49,6 @@ pub enum OperatingMode {
 
 /// Magnetometer configuration.
 pub struct MagnetometerConfig {
-    /// Whether magnetometer component is enabled.
-    pub enabled: bool,
     /// Enable internal temperature compensation.
     pub temperature_compensation: bool,
     /// Performance/power mode used for XY-axis measurement.
@@ -74,7 +83,6 @@ pub struct MagnetometerConfig {
 impl Default for MagnetometerConfig {
     fn default() -> Self {
         Self {
-            enabled: false,
             temperature_compensation: false,
             xy_performance_mode: PerformanceMode::LowPower,
             z_performance_mode: PerformanceMode::LowPower,

@@ -33,12 +33,33 @@ pub enum GyroFullScale {
     _2000dps,
 }
 
+impl From<GyroFullScale> for f32 {
+    fn from(gyro_full_scale: GyroFullScale) -> f32 {
+        match gyro_full_scale {
+            GyroFullScale::_245dps => 245.0,
+            GyroFullScale::_500dps => 500.0,
+            GyroFullScale::_2000dps => 2000.0,
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 pub enum AccelFullScale {
     PlusMinus2g,
     PlusMinus4g,
     PlutMinus8g,
     PlusMinus16g,
+}
+
+impl From<AccelFullScale> for f32 {
+    fn from(accel_full_scale: AccelFullScale) -> f32 {
+        match accel_full_scale {
+            AccelFullScale::PlusMinus2g => 2.0,
+            AccelFullScale::PlusMinus4g => 4.0,
+            AccelFullScale::PlutMinus8g => 8.0,
+            AccelFullScale::PlusMinus16g => 16.0,
+        }
+    }
 }
 
 #[derive(Copy, Clone)]

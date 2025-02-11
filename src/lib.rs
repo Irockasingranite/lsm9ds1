@@ -4,14 +4,15 @@
 pub mod config;
 /// Sensor interfaces.
 pub mod interface;
+/// Builder for an LSM9DS1 sensor.
+pub mod builder;
 
-mod builder;
 mod registers;
 
 #[cfg(test)]
 mod tests;
 
-use builder::Lsm9ds1Builder;
+pub use builder::Lsm9ds1Builder;
 use config::DeviceConfig;
 use embedded_hal::i2c;
 use interface::Interface;
@@ -31,10 +32,6 @@ pub struct Lsm9ds1<I: Interface> {
 }
 
 impl<I: Interface> Lsm9ds1<I> {
-    pub fn builder() -> Lsm9ds1Builder {
-        Lsm9ds1Builder::new()
-    }
-
     /// Initialize the device by applying all settings.
     pub fn init(&mut self) -> Result<(), Error> {
         let register_values = self.config.all_registers();
@@ -130,6 +127,63 @@ impl<I: Interface> Lsm9ds1<I> {
         self.config.accel_gyro.accel_only_sampling_rate = rate;
 
         Ok(())
+    }
+
+    /// Read out gyroscope data in dps.
+    pub fn get_gyroscope_data(&mut self) -> Result<(f32, f32, f32), Error> {
+        let mut data = [0; 6];
+        self.interface
+            .read_multiple(Register::OUT_X_L_G, &mut data)?;
+
+        let x_raw = (data[1] as i16) << 8 | data[0] as i16;
+        let y_raw = (data[3] as i16) << 8 | data[2] as i16;
+        let z_raw = (data[5] as i16) << 8 | data[4] as i16;
+
+        let scale_factor = f32::from(self.config.accel_gyro.gyro_full_scale) / (i16::MAX as f32);
+
+        let x_dps = x_raw as f32 * scale_factor;
+        let y_dps = y_raw as f32 * scale_factor;
+        let z_dps = z_raw as f32 * scale_factor;
+
+        Ok((x_dps, y_dps, z_dps))
+    }
+
+    /// Read out accelerometer data in g.
+    pub fn get_accelerometer_data(&mut self) -> Result<(f32, f32, f32), Error> {
+        let mut data = [0; 6];
+        self.interface
+            .read_multiple(Register::OUT_X_L_XL, &mut data)?;
+
+        let x_raw = (data[1] as i16) << 8 | data[0] as i16;
+        let y_raw = (data[3] as i16) << 8 | data[2] as i16;
+        let z_raw = (data[5] as i16) << 8 | data[4] as i16;
+
+        let scale_factor = f32::from(self.config.accel_gyro.accel_full_scale) / (i16::MAX as f32);
+
+        let x_g = x_raw as f32 * scale_factor;
+        let y_g = y_raw as f32 * scale_factor;
+        let z_g = z_raw as f32 * scale_factor;
+
+        Ok((x_g, y_g, z_g))
+    }
+
+    /// Read out magnetometer data in Gauss.
+    pub fn get_magnetometer_data(&mut self) -> Result<(f32, f32, f32), Error> {
+        let mut data = [0; 6];
+        self.interface
+            .read_multiple(Register::OUT_X_L_M, &mut data)?;
+
+        let x_raw = (data[1] as i16) << 8 | data[0] as i16;
+        let y_raw = (data[3] as i16) << 8 | data[2] as i16;
+        let z_raw = (data[5] as i16) << 8 | data[4] as i16;
+
+        let scale_factor = f32::from(self.config.magnetometer.full_scale) / (i16::MAX as f32);
+
+        let x_gauss = x_raw as f32 * scale_factor;
+        let y_gauss = y_raw as f32 * scale_factor;
+        let z_gauss = z_raw as f32 * scale_factor;
+
+        Ok((x_gauss, y_gauss, z_gauss))
     }
 
     /// Read out chip identification for the accelerometer and gyroscope.
