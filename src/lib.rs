@@ -45,6 +45,93 @@ impl<I: Interface> Lsm9ds1<I> {
         Ok(())
     }
 
+    /// Enable or disable the accelerometer.
+    pub fn set_accelerometer_enabled(&mut self, enabled: bool) -> Result<(), Error> {
+        let ctrl_reg_5_xl = registers::ctrl_reg_5_xl(
+            self.config.accel_gyro.accel_decimation,
+            enabled,
+            enabled,
+            enabled,
+        );
+
+        self.interface
+            .write(Register::CTRL_REG5_XL, ctrl_reg_5_xl)?;
+
+        self.config.accel_gyro.accel_x_axis_enabled = enabled;
+        self.config.accel_gyro.accel_y_axis_enabled = enabled;
+        self.config.accel_gyro.accel_z_axis_enabled = enabled;
+
+        Ok(())
+    }
+
+    /// Enable or disable the gyroscope.
+    pub fn set_gyroscope_enabled(&mut self, enabled: bool) -> Result<(), Error> {
+        let ctrl_reg_4 = registers::ctrl_reg_4(enabled, enabled, enabled);
+
+        self.interface.write(Register::CTRL_REG4, ctrl_reg_4)?;
+
+        self.config.accel_gyro.gyro_x_axis_enabled = enabled;
+        self.config.accel_gyro.gyro_y_axis_enabled = enabled;
+        self.config.accel_gyro.gyro_z_axis_enabled = enabled;
+
+        Ok(())
+    }
+
+    /// Enable or disable the magnetometer.
+    pub fn set_magnetometer_enabled(&mut self, enabled: bool) -> Result<(), Error> {
+        let operating_mode = if enabled {
+            config::magnetometer::OperatingMode::ContinuousConversion
+        } else {
+            config::magnetometer::OperatingMode::PowerDown
+        };
+
+        let ctrl_reg_3_m = registers::ctrl_rg_3_m(
+            self.config.magnetometer.i2c_disabled,
+            self.config.magnetometer.low_power_mode,
+            self.config.magnetometer.spi_write_only,
+            operating_mode,
+        );
+
+        self.interface.write(Register::CTRL_REG3_M, ctrl_reg_3_m)?;
+
+        self.config.magnetometer.operating_mode = operating_mode;
+
+        Ok(())
+    }
+
+    /// Set the sampling rate for the accelerometer and gyroscope.
+    pub fn set_accel_gyro_sampling_rate(
+        &mut self,
+        rate: config::accel_gyro::AccelGyroSamplingRate,
+    ) -> Result<(), Error> {
+        let ctrl_reg_1_g = registers::ctrl_reg_1_g(rate, self.config.accel_gyro.gyro_full_scale);
+
+        self.interface.write(Register::CTRL_REG1_G, ctrl_reg_1_g)?;
+
+        self.config.accel_gyro.accel_gyro_sampling_rate = rate;
+
+        Ok(())
+    }
+
+    /// Set the sampling rate for the accelerometer (if gyro is disabled).
+    pub fn set_accel_sampling_rate(
+        &mut self,
+        rate: config::accel_gyro::AccelSamplingRate,
+    ) -> Result<(), Error> {
+        let ctrl_reg_6_xl = registers::ctrl_reg_6_xl(
+            rate,
+            self.config.accel_gyro.accel_full_scale,
+            self.config.accel_gyro.accel_bandwidth,
+        );
+
+        self.interface
+            .write(Register::CTRL_REG6_XL, ctrl_reg_6_xl)?;
+
+        self.config.accel_gyro.accel_only_sampling_rate = rate;
+
+        Ok(())
+    }
+
     /// Read out chip identification for the accelerometer and gyroscope.
     pub fn who_am_i_ag(&mut self) -> Result<u8, Error> {
         self.interface.read(Register::WHO_AM_I)
