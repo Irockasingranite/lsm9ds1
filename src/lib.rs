@@ -1,11 +1,11 @@
 #![cfg_attr(not(test), no_std)] // This allows us to use std in tests
 
+/// Builder for an LSM9DS1 sensor.
+pub mod builder;
 /// Sensor configuration.
 pub mod config;
 /// Sensor interfaces.
 pub mod interface;
-/// Builder for an LSM9DS1 sensor.
-pub mod builder;
 
 mod registers;
 
@@ -14,16 +14,26 @@ mod tests;
 
 pub use builder::Lsm9ds1Builder;
 use config::DeviceConfig;
+use core::error::Error;
+use core::fmt::Display;
 use embedded_hal::i2c;
 use interface::Interface;
 use registers::Register;
 
 /// Driver Errors.
 #[derive(Debug)]
-pub enum Error {
+pub enum Lsm9ds1Error {
     /// Error during I2C communication.
     I2cError(i2c::ErrorKind),
 }
+
+impl Display for Lsm9ds1Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for Lsm9ds1Error {}
 
 /// An LSM9DS1 sensor.
 pub struct Lsm9ds1<I: Interface> {
@@ -33,7 +43,7 @@ pub struct Lsm9ds1<I: Interface> {
 
 impl<I: Interface> Lsm9ds1<I> {
     /// Initialize the device by applying all settings.
-    pub fn init(&mut self) -> Result<(), Error> {
+    pub fn init(&mut self) -> Result<(), Lsm9ds1Error> {
         let register_values = self.config.all_registers();
         for (reg, value) in register_values.into_iter() {
             self.interface.write(reg, value)?;
@@ -43,7 +53,7 @@ impl<I: Interface> Lsm9ds1<I> {
     }
 
     /// Enable or disable the accelerometer.
-    pub fn set_accelerometer_enabled(&mut self, enabled: bool) -> Result<(), Error> {
+    pub fn set_accelerometer_enabled(&mut self, enabled: bool) -> Result<(), Lsm9ds1Error> {
         let ctrl_reg_5_xl = registers::ctrl_reg_5_xl(
             self.config.accel_gyro.accel_decimation,
             enabled,
@@ -62,7 +72,7 @@ impl<I: Interface> Lsm9ds1<I> {
     }
 
     /// Enable or disable the gyroscope.
-    pub fn set_gyroscope_enabled(&mut self, enabled: bool) -> Result<(), Error> {
+    pub fn set_gyroscope_enabled(&mut self, enabled: bool) -> Result<(), Lsm9ds1Error> {
         let ctrl_reg_4 = registers::ctrl_reg_4(enabled, enabled, enabled);
 
         self.interface.write(Register::CTRL_REG4, ctrl_reg_4)?;
@@ -75,7 +85,7 @@ impl<I: Interface> Lsm9ds1<I> {
     }
 
     /// Enable or disable the magnetometer.
-    pub fn set_magnetometer_enabled(&mut self, enabled: bool) -> Result<(), Error> {
+    pub fn set_magnetometer_enabled(&mut self, enabled: bool) -> Result<(), Lsm9ds1Error> {
         let operating_mode = if enabled {
             config::magnetometer::OperatingMode::ContinuousConversion
         } else {
@@ -100,7 +110,7 @@ impl<I: Interface> Lsm9ds1<I> {
     pub fn set_accel_gyro_sampling_rate(
         &mut self,
         rate: config::accel_gyro::AccelGyroSamplingRate,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Lsm9ds1Error> {
         let ctrl_reg_1_g = registers::ctrl_reg_1_g(rate, self.config.accel_gyro.gyro_full_scale);
 
         self.interface.write(Register::CTRL_REG1_G, ctrl_reg_1_g)?;
@@ -114,7 +124,7 @@ impl<I: Interface> Lsm9ds1<I> {
     pub fn set_accel_sampling_rate(
         &mut self,
         rate: config::accel_gyro::AccelSamplingRate,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Lsm9ds1Error> {
         let ctrl_reg_6_xl = registers::ctrl_reg_6_xl(
             rate,
             self.config.accel_gyro.accel_full_scale,
@@ -130,7 +140,7 @@ impl<I: Interface> Lsm9ds1<I> {
     }
 
     /// Read out gyroscope data in dps.
-    pub fn get_gyroscope_data(&mut self) -> Result<(f32, f32, f32), Error> {
+    pub fn get_gyroscope_data(&mut self) -> Result<(f32, f32, f32), Lsm9ds1Error> {
         let mut data = [0; 6];
         self.interface
             .read_multiple(Register::OUT_X_L_G, &mut data)?;
@@ -149,7 +159,7 @@ impl<I: Interface> Lsm9ds1<I> {
     }
 
     /// Read out accelerometer data in g.
-    pub fn get_accelerometer_data(&mut self) -> Result<(f32, f32, f32), Error> {
+    pub fn get_accelerometer_data(&mut self) -> Result<(f32, f32, f32), Lsm9ds1Error> {
         let mut data = [0; 6];
         self.interface
             .read_multiple(Register::OUT_X_L_XL, &mut data)?;
@@ -168,7 +178,7 @@ impl<I: Interface> Lsm9ds1<I> {
     }
 
     /// Read out magnetometer data in Gauss.
-    pub fn get_magnetometer_data(&mut self) -> Result<(f32, f32, f32), Error> {
+    pub fn get_magnetometer_data(&mut self) -> Result<(f32, f32, f32), Lsm9ds1Error> {
         let mut data = [0; 6];
         self.interface
             .read_multiple(Register::OUT_X_L_M, &mut data)?;
@@ -187,17 +197,17 @@ impl<I: Interface> Lsm9ds1<I> {
     }
 
     /// Read out chip identification for the accelerometer and gyroscope.
-    pub fn who_am_i_ag(&mut self) -> Result<u8, Error> {
+    pub fn who_am_i_ag(&mut self) -> Result<u8, Lsm9ds1Error> {
         self.interface.read(Register::WHO_AM_I)
     }
 
     /// Read out chip identification for the magnetometer.
-    pub fn who_am_i_m(&mut self) -> Result<u8, Error> {
+    pub fn who_am_i_m(&mut self) -> Result<u8, Lsm9ds1Error> {
         self.interface.read(Register::WHO_AM_I_M)
     }
 
     /// Apply software reset.
-    pub fn reset(&mut self) -> Result<(), Error> {
+    pub fn reset(&mut self) -> Result<(), Lsm9ds1Error> {
         let mut ctrl_reg = self.interface.read(Register::CTRL_REG8)?;
         ctrl_reg |= 0b1;
         self.interface.write(Register::CTRL_REG8, ctrl_reg)
@@ -206,7 +216,7 @@ impl<I: Interface> Lsm9ds1<I> {
     /// Read out temperature in °C. Temperature is used for internal temperature compensation and
     /// not as a primary sensor output. Values will be inaccurate if primary sensor types aren't
     /// being sampled.
-    pub fn temperature_c(&mut self) -> Result<f32, Error> {
+    pub fn temperature_c(&mut self) -> Result<f32, Lsm9ds1Error> {
         let temp_l = self.interface.read(Register::OUT_TEMP_L)?;
         let temp_h = self.interface.read(Register::OUT_TEMP_H)?;
 

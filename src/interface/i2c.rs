@@ -5,7 +5,7 @@ use embedded_hal::i2c::I2c;
 
 use crate::interface::Interface;
 use crate::registers::{ComponentAddress, Register};
-use crate::Error;
+use crate::Lsm9ds1Error;
 
 /// I2C address of the Accelerometer/Gyroscope component.
 pub enum AddressAg {
@@ -84,7 +84,7 @@ impl<I2C: I2c> I2cInterface<I2C> {
 }
 
 impl<I2C: I2c> Interface for I2cInterface<I2C> {
-    fn read(&mut self, reg: Register) -> Result<u8, Error> {
+    fn read(&mut self, reg: Register) -> Result<u8, Lsm9ds1Error> {
         let addr = reg.addr();
         let (device_addr, reg_addr) = match addr {
             ComponentAddress::Ag(reg) => (self.config.addr_ag.addr(), reg),
@@ -94,12 +94,12 @@ impl<I2C: I2c> Interface for I2cInterface<I2C> {
 
         self.bus
             .write_read(device_addr, &[reg_addr], slice::from_mut(&mut buf))
-            .map_err(|e| Error::I2cError(e.kind()))?;
+            .map_err(|e| Lsm9ds1Error::I2cError(e.kind()))?;
 
         Ok(buf)
     }
 
-    fn read_multiple(&mut self, start_reg: Register, buffer: &mut[u8]) -> Result<(), Error> {
+    fn read_multiple(&mut self, start_reg: Register, buffer: &mut[u8]) -> Result<(), Lsm9ds1Error> {
         let start_addr = start_reg.addr();
         let (device_addr, start_reg_addr) = match start_addr {
             ComponentAddress::Ag(reg) => (self.config.addr_ag.addr(), reg),
@@ -108,10 +108,10 @@ impl<I2C: I2c> Interface for I2cInterface<I2C> {
 
         self.bus
             .write_read(device_addr, &[start_reg_addr], buffer)
-            .map_err(|e| Error::I2cError(e.kind()))
+            .map_err(|e| Lsm9ds1Error::I2cError(e.kind()))
     }
 
-    fn write(&mut self, reg: Register, value: u8) -> Result<(), Error> {
+    fn write(&mut self, reg: Register, value: u8) -> Result<(), Lsm9ds1Error> {
         let addr = reg.addr();
         let (device_addr, reg_addr) = match addr {
             ComponentAddress::Ag(reg) => (self.config.addr_ag.addr(), reg),
@@ -120,7 +120,7 @@ impl<I2C: I2c> Interface for I2cInterface<I2C> {
 
         self.bus
             .write(device_addr, &[reg_addr, value])
-            .map_err(|e| Error::I2cError(e.kind()))
+            .map_err(|e| Lsm9ds1Error::I2cError(e.kind()))
     }
 }
 

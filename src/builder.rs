@@ -3,8 +3,8 @@ use crate::config::{
     magnetometer, DeviceConfig,
 };
 use crate::interface::Interface;
-use crate::Error;
 use crate::Lsm9ds1;
+use crate::Lsm9ds1Error;
 
 /// Builder for LSM9DS1 sensor.
 #[derive(Default)]
@@ -21,7 +21,7 @@ impl Lsm9ds1Builder {
         Self { config }
     }
 
-    pub fn init_on<I: Interface>(self, interface: I) -> Result<Lsm9ds1<I>, Error> {
+    pub fn init_on<I: Interface>(self, interface: I) -> Result<Lsm9ds1<I>, Lsm9ds1Error> {
         let mut device = Lsm9ds1::<I> {
             interface,
             config: self.config,
